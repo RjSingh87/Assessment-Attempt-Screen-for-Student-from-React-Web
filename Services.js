@@ -47,7 +47,7 @@ class Services {
     }
     async formMethod(url, body) {
         return fetch(baseURL + url, {
-            headers: { accpet: "Application/json", "Api-token": token },
+            headers: { accept: "Application/json", "Api-token": token },
             method: "POST",
             body: body
         })

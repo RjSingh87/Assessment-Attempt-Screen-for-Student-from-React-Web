@@ -195,3 +195,18 @@ body{
     color: #000;
     font-size: 17px;
   }
+  .trashIcon{
+    position: absolute;
+    bottom: -30%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #f01f0c;
+    border-radius: 50%;
+    border: none;
+    color: #fff;
+    width: 30px;
+    height: 30px;
+    align-items: center;
+    justify-content: center;
+    display: flex;
+  }

@@ -7,6 +7,7 @@ import Loader from './attemptScreen/Loader';
 import Swal from 'sweetalert2'
 import AssessmentTimer from './AssessmentTimer';
 import Instruction from './Instruction';
+import DescriptiveTypeUploadFile from './DescriptiveTypeUploadFile'
 
 
 function App() {
@@ -736,10 +737,8 @@ function App() {
 
 
 	const submitAttem = () => {
-		console.log(finalPost, "call function...")
 
 		if (attemptedCount) {
-			console.log("call Rajfunction...")
 			Swal.fire({
 				title: "Are you sure?",
 				text: "Once Submit, your will not be able to Attempt Again!",
@@ -775,7 +774,7 @@ function App() {
 						console.log(assResult, "assResult????")
 					} else if (assResult.status === "error") {
 						Swal.fire(`${assResult?.status}`, `${assResult?.message}`, "error");
-						console.log(assResult, "elseIfassResult????")
+						// openDescriptiveUploadModal()
 					}
 
 				} catch (error) {
@@ -826,6 +825,11 @@ function App() {
 					</div>
 				</div>
 			</div>
+
+			{showDescModal &&
+				<DescriptiveTypeUploadFile setShowDescModal={setShowDescModal} allAssessmentData={allAssessmentData} />
+			}
+
 
 
 			{/* data prop drilling.... */}
