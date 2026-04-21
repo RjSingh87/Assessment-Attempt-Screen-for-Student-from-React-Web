@@ -35,7 +35,7 @@ function App() {
 	const nonDescriptiveQuestions = allAssessmentData.questions.filter(q => q.activityID !== 15);
 	const attemptedIds = new Set(finalPost.map(item => item.quesID));
 	const allNonDescriptiveAttempted = nonDescriptiveQuestions.every(q => attemptedIds.has(q.questionID));
-	const isDescriptiveAvailable = allAssessmentData?.questions?.some(q => q.activityID == 15);
+	const isDescriptiveAvailable = allAssessmentData?.questions?.some(q => q.activityID === 15);
 	// ------------------------------
 
 	//for attempted question counting
@@ -50,10 +50,34 @@ function App() {
 
 
 
-	useEffect(() => {
-		getAssQuest()
-	}, [])
+	// useEffect(() => {
+	// 	getAssQuest()
+	// }, [])
 
+
+	useEffect(() => {
+		if (window.ReactNativeWebView) {
+			console.log("Sending WEB_READY");
+			window.ReactNativeWebView.postMessage("WEB_READY");
+		}
+	}, []);
+
+	// ye react native me web ka console log dikhane ke liye hai, taki webview ke console log ko react native side me receive karke show kar sake.
+	if (typeof window !== "undefined" && !window.__LOG_PATCHED__) {
+		window.__LOG_PATCHED__ = true;
+
+		const originalLog = console.log;
+
+		console.log = function (...args) {
+			originalLog(...args);
+
+			if (window.ReactNativeWebView) {
+				window.ReactNativeWebView.postMessage(
+					JSON.stringify({ type: "LOG", data: args })
+				);
+			}
+		};
+	}
 
 
 	useEffect(() => {
@@ -64,41 +88,48 @@ function App() {
 	}, [storeData]);
 
 
+	// for react web assessment testing only, jab production level par ye useeffect code comment kar dena hai.	
+	useEffect(() => {
+		if (!window.ReactNativeWebView) {
+			console.log("Browser mode");
 
-
-
-
-	// useEffect(() => {
-	// 	const handleMessage = (event) => {
-	// 		alert("-----")
-	// 		try {
-	// 			const data = JSON.parse(event.data);
-	// 			setNativeData(data);
-	// 			if(data.userData!=undefined){
-	// 				alert('hello')
-	// 				getAssQuest(data)
-	// 			}else{
-	// 				alert('not data')
-	// 			}
-	// 		} catch (err) {
-	// 			console.error("JSON parse error:", err);
-	// 		}
-	// 	};
-	// 	window.addEventListener("message", handleMessage);
-	// 	return () => window.removeEventListener("message", handleMessage);
-	// },[]);
-
-	// ✅ React Web to React-Native data transfer.
-	const sendToReactNative = () => {
-		if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
-			window.ReactNativeWebView.postMessage("Hello from Web!");
+			getAssQuest({
+				assessmentID: 9733,
+				classID: 6,
+				schoolCode: "B2BUSRSCH01",
+				userRefID: 101534
+			});
 		}
-	};
+	}, []);
+
+
+	// for final production level receiving data from react native side and set to state.
+	useEffect(() => {
+		const handleRNData = () => {
+			const data = window.REACT_NATIVE_DATA;
+
+			console.log("RN DATA:", data);
+
+			// validation
+			if (!data?.assessmentID || !data?.classID || !data?.userRefID || !data?.schoolCode) {
+				console.error("Missing required data");
+				return;
+			}
+
+			setNativeData(data);
+			getAssQuest(data);
+		};
+
+		window.addEventListener("RN_DATA_READY", handleRNData);
+
+		return () => {
+			window.removeEventListener("RN_DATA_READY", handleRNData);
+		};
+	}, []);
 
 
 
-
-	const userData = nativeData?.userData?.data
+	// const userData = nativeData?.userData?.data
 	// const {classID, schoolCode, userRefID,  } = data.userData.data || {}
 	// const {assessmentID  } = nativeData?.allAssessmentData?.questions[0] || {}
 
@@ -114,15 +145,14 @@ function App() {
 	}
 
 
-
-
 	const getAssQuest = async (data) => {
+		if (!data?.assessmentID || !data?.classID || !data?.userRefID || !data?.schoolCode) return;
 		setLoader(true)
 		const payload = {
-			"assessmentID": 9140,//9002,//8862, //<= all type assessment //8571, //8512,//8466,//8079,//8148,//8186,//8101,//8079, //5845, //data?.allAssessmentData?.questions[0]?.assessmentID,
-			"classID": 5,//2, //data?.userData?.data?.classID,
-			"schoolCode": "B2BUSRSCH01", //data?.userData?.data?.schoolCode,
-			"userRefID": 50645 //data?.userData?.data?.userRefID
+			"assessmentID": data?.assessmentID,
+			"classID": data?.classID,
+			"schoolCode": data?.schoolCode,
+			"userRefID": data?.userRefID
 		}
 		try {
 			const result = await Services.post(apiRoot.getAssessmentQuestion, payload)
@@ -707,7 +737,7 @@ function App() {
 
 
 
-	const getDescriptivePayloads = () => { return allAssessmentData.questions.filter(q => q.activityID == 15).map(q => buildDescriptivePayload(q)); };
+	const getDescriptivePayloads = () => { return allAssessmentData.questions.filter(q => q.activityID === 15).map(q => buildDescriptivePayload(q)); };
 
 	const buildDescriptivePayload = (q) => ({
 		quesID: q.questionID,
@@ -769,7 +799,10 @@ function App() {
 						if (isDescriptiveAvailable) {
 							openDescriptiveUploadModal()
 						} else {
-							navigate(-1);
+							setTimeout(() => {
+								window.ReactNativeWebView.postMessage("ASSESSMENT_SUBMITTED")
+							}, 2000)
+							// navigate(-1);
 						}
 						console.log(assResult, "assResult????")
 					} else if (assResult.status === "error") {

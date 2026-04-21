@@ -39,6 +39,12 @@ export default function DescriptiveTypeUploadFile({ setShowDescModal, allAssessm
     setDescFile(prev => [...prev, ...newFiles]);
   };
 
+  const notifyRNSubmit = () => {
+    if (window.ReactNativeWebView) {
+      window.ReactNativeWebView.postMessage("ASSESSMENT_SUBMITTED");
+    }
+  };
+
 
   const handleDescFinalSubmit = async () => {
     if (!descFile.length) {
@@ -49,6 +55,7 @@ export default function DescriptiveTypeUploadFile({ setShowDescModal, allAssessm
     try {
       setLoader(true);
       const q = allAssessmentData.questions[0];
+      if (!q) return;
 
 
       // clone array
@@ -82,7 +89,9 @@ export default function DescriptiveTypeUploadFile({ setShowDescModal, allAssessm
       setDescFile(updatedFiles); // update state once
       Swal.fire("Success", "All files uploaded.", "success");
       setShowDescModal(false);
-      window.history.back();
+      setTimeout(() => {
+        notifyRNSubmit();
+      }, 2000)
 
     } catch (err) {
       console.error(err);
@@ -117,6 +126,7 @@ export default function DescriptiveTypeUploadFile({ setShowDescModal, allAssessm
         setLoader(true);
 
         const q = allAssessmentData.questions[0];
+        if (!q) return;
 
         await Services.post(apiRoot.deleteDescExamImage, {
           schoolCode: q.schoolCode,
@@ -141,7 +151,11 @@ export default function DescriptiveTypeUploadFile({ setShowDescModal, allAssessm
 
 
   if (loader) {
-    <Loader />
+    return (
+      <div style={{ backgroundColor: SWATheam.SwaWhite + 4, position: "absolute", top: 0, left: 0, width: "100%", height: "100%", zIndex: 9999 }}>
+        <Loader />
+      </div>
+    );
   }
 
 

@@ -89,7 +89,7 @@ export default function FillUp({ fillBlanksQues, currentIndex, qNumber, siteUrls
                       if (part === "#") {
                         const currentAnswer = allAnswers[answerIndex++] || "";
                         const answerLength = currentAnswer.length || 1;
-                        const inputWidth = 20
+                        const inputWidth = 10
                         let width = 40
                         if (answerLength > 1) {
                           width = (answerLength * inputWidth) + 6
