@@ -210,3 +210,7 @@ body{
     justify-content: center;
     display: flex;
   }
+
+  .childMargin p{
+    margin-bottom: 0px;
+  }

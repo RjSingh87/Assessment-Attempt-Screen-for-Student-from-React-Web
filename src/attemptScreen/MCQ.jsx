@@ -67,7 +67,7 @@ export default function MCQ({ mcqQues, indexNo, currentIndex, qNumber, mcqClicke
           {isImage &&
             <img draggable={false} src={uri} style={{ width: "auto", maxWidth: "100%", maxHeight: `${optionImageHight}px`, objectFit: "contain", }} />
           }
-          <div style={{ color: isSelected ? SWATheam.SwaWhite : SWATheam.SwaBlack }}>{converIntoMathJax(optionText)}</div>
+          <div className='childMargin' style={{ color: isSelected ? SWATheam.SwaWhite : SWATheam.SwaBlack }}>{converIntoMathJax(optionText)}</div>
 
         </div>
       </div>

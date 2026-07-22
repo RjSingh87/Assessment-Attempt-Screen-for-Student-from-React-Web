@@ -10,6 +10,7 @@ import Instruction from './Instruction';
 import DescriptiveTypeUploadFile from './DescriptiveTypeUploadFile'
 
 
+
 function App() {
 	const [nativeData, setNativeData] = useState(null);
 	const [userDetails, setUserDetails] = useState({ "classID": null, "schoolCode": null, "userRefID": null, "assessmentID": null })
@@ -63,21 +64,21 @@ function App() {
 	}, []);
 
 	// ye react native me web ka console log dikhane ke liye hai, taki webview ke console log ko react native side me receive karke show kar sake.
-	if (typeof window !== "undefined" && !window.__LOG_PATCHED__) {
-		window.__LOG_PATCHED__ = true;
+	// if (typeof window !== "undefined" && !window.__LOG_PATCHED__) {
+	// 	window.__LOG_PATCHED__ = true;
 
-		const originalLog = console.log;
+	// 	const originalLog = console.log;
 
-		console.log = function (...args) {
-			originalLog(...args);
+	// 	console.log = function (...args) {
+	// 		originalLog(...args);
 
-			if (window.ReactNativeWebView) {
-				window.ReactNativeWebView.postMessage(
-					JSON.stringify({ type: "LOG", data: args })
-				);
-			}
-		};
-	}
+	// 		if (window.ReactNativeWebView) {
+	// 			window.ReactNativeWebView.postMessage(
+	// 				JSON.stringify({ type: "LOG", data: args })
+	// 			);
+	// 		}
+	// 	};
+	// }
 
 
 	useEffect(() => {
@@ -94,10 +95,10 @@ function App() {
 			console.log("Browser mode");
 
 			getAssQuest({
-				assessmentID: 9733,
+				assessmentID: 119,
 				classID: 6,
-				schoolCode: "B2BUSRSCH01",
-				userRefID: 101534
+				schoolID: 1,
+				userRefID: 1472
 			});
 		}
 	}, []);
@@ -111,7 +112,7 @@ function App() {
 			console.log("RN DATA:", data);
 
 			// validation
-			if (!data?.assessmentID || !data?.classID || !data?.userRefID || !data?.schoolCode) {
+			if (!data?.assessmentID || !data?.classID || !data?.userRefID || !data?.schoolID) {
 				console.error("Missing required data");
 				return;
 			}
@@ -146,14 +147,15 @@ function App() {
 
 
 	const getAssQuest = async (data) => {
-		if (!data?.assessmentID || !data?.classID || !data?.userRefID || !data?.schoolCode) return;
+		if (!data?.assessmentID || !data?.classID || !data?.userRefID || !data?.schoolID) return;
 		setLoader(true)
 		const payload = {
 			"assessmentID": data?.assessmentID,
 			"classID": data?.classID,
-			"schoolCode": data?.schoolCode,
+			"schoolID": data?.schoolID,
 			"userRefID": data?.userRefID
 		}
+		// console.log(payload, "rn value...")
 		try {
 			const result = await Services.post(apiRoot.getAssessmentQuestion, payload)
 			if (result.status === "success") {
@@ -164,9 +166,9 @@ function App() {
 				const sectionID = result?.sectionID;
 				const userRefID = result?.userRefID;
 				const siteUrls = result?.siteUrl;
-				const totalTime = result?.totalTime
+				const totalTime = data?.totalTime
 
-				setUserDetails((prev) => { return { ...prev, classID: payload.classID, schoolCode: payload.schoolCode, userRefID: payload.userRefID, assessmentID: payload.assessmentID } }) //userDetails data...
+				setUserDetails((prev) => { return { ...prev, classID: payload.classID, schoolCode: payload.schoolID, userRefID: payload.userRefID, assessmentID: payload.assessmentID } }) //userDetails data...
 
 				setAllAssessmentData((prev,) => { return { ...prev, status: true, questions: assData, totalQuest: totalQuest, totalMks: totalMks, siteUrls: siteUrls, totalTime: totalTime, userTypeID, sectionID, userRefID } })
 
@@ -195,33 +197,14 @@ function App() {
 	const prevBtn = () => {
 		setCurrentIndex(currentIndex - 1)// current question index.
 		setAllAssessmentData((prev) => { return { ...prev, qNumber: prev.qNumber - 1 } }) // set current question ques no.
-		console.log("From app.js PREV", currentIndex)
-	}
-
-	const submitBtn = () => {
-		if (allAssessmentData?.questions[currentIndex]?.activityID === 15) {
-			console.log("Yes Decreptive Questions.....")
-			Swal.fire({
-				title: "Are you sure?",
-				text: "You won't be able to revert this!",
-				icon: "warning",
-				showCancelButton: true,
-				confirmButtonColor: "#3085d6",
-				cancelButtonColor: "#d33",
-				confirmButtonText: "Yes, delete it!"
-			}).then((result) => {
-				if (result.isConfirmed) {
-					setIsDescriptive(true)
-				}
-			});
-		}
+		// console.log("From app.js PREV", currentIndex)
 	}
 
 	const nextBtn = () => {
 		// console.log(allAssessmentData.questions[currentIndex + 1].activityID, "Next function")		
 		setCurrentIndex(currentIndex + 1) // current question index.
 		setAllAssessmentData((prev) => { return { ...prev, qNumber: prev.qNumber + 1 } }) // set current question ques no.
-		console.log("From app.js NEXT", currentIndex)
+		// console.log("From app.js NEXT", currentIndex)
 	}
 
 
@@ -767,7 +750,7 @@ function App() {
 
 
 	const submitAttem = () => {
-
+		//only Mcq, tnf, fillups, matching, dropdown, jumble, DD question submit karne ke liye,
 		if (attemptedCount) {
 			Swal.fire({
 				title: "Are you sure?",
@@ -781,18 +764,17 @@ function App() {
 				if (!result.isConfirmed) return
 				try {
 					setLoader(true)
-					const { schoolCode, academicYear, questionID, assessmentID, classID, subjectID, miID, eadID, marksPerQuestion, answerIDs, answerText, } = allAssessmentData?.questions[currentIndex]
+					const { schoolID, academicYear, questionID, assessmentID, classID, subjectID, miID, eadID, marksPerQuestion, answerIDs, answerText, } = allAssessmentData?.questions[currentIndex]
 					const attemptData = mergeFinalPostWithDescriptive()
 					const payloadOfFinalSubmit = {
-						"schoolCode": schoolCode,
+						"schoolID": schoolID,
 						"userRefID": allAssessmentData.userRefID,
-						"academicYear": academicYear,
+						// "academicYear": academicYear,
 						"userTypeID": allAssessmentData.userTypeID,
 						"classID": classID,
 						"sectionID": allAssessmentData.sectionID,
 						"attemptData": attemptData
 					}
-					console.log(payloadOfFinalSubmit, "payloadOfFinalSubmit????")
 					const assResult = await Services.post(apiRoot.submitAssessment, payloadOfFinalSubmit)
 					if (assResult.status === "success") {
 						Swal.fire("Congratulations!", `${assResult?.message}`, "success");
@@ -804,7 +786,6 @@ function App() {
 							}, 2000)
 							// navigate(-1);
 						}
-						console.log(assResult, "assResult????")
 					} else if (assResult.status === "error") {
 						Swal.fire(`${assResult?.status}`, `${assResult?.message}`, "error");
 						// openDescriptiveUploadModal()
@@ -813,11 +794,62 @@ function App() {
 				} catch (error) {
 					if (error.message == "TypeError: Network request failed") {
 						alert("Network Error", `Please try again.`)
-						console.log(error, "elseIfassResult????")
 					}
 				}
 				finally { setLoader(false) }
 			});
+		}
+		//only descriptive question submit karne ke liye.
+		else if (isDescriptiveAvailable) {
+			Swal.fire({
+				title: "Are you sure?",
+				text: "Once Submit, your will not be able to Attempt Again!",
+				icon: "warning",
+				showCancelButton: true,
+				cancelButtonColor: "#d33",
+				confirmButtonColor: "#3085d6",
+				confirmButtonText: "OK"
+			}).then(async (result) => {
+				if (!result.isConfirmed) return
+				try {
+					setLoader(true)
+					const { schoolID, academicYear, questionID, assessmentID, classID, subjectID, miID, eadID, marksPerQuestion, answerIDs, answerText, } = allAssessmentData?.questions[currentIndex]
+					const attemptData = mergeFinalPostWithDescriptive()
+					const payloadOfFinalSubmit = {
+						"schoolID": schoolID,
+						"userRefID": allAssessmentData.userRefID,
+						// "academicYear": academicYear,
+						"userTypeID": allAssessmentData.userTypeID,
+						"classID": classID,
+						"sectionID": allAssessmentData.sectionID,
+						"attemptData": attemptData
+					}
+					const assResult = await Services.post(apiRoot.submitAssessment, payloadOfFinalSubmit)
+					if (assResult.status === "success") {
+						// Swal.fire("Congratulations!", `${assResult?.message}`, "success");
+						if (isDescriptiveAvailable) {
+							openDescriptiveUploadModal()
+						} else {
+							setTimeout(() => {
+								window.ReactNativeWebView.postMessage("ASSESSMENT_SUBMITTED")
+							}, 2000)
+							// navigate(-1);
+						}
+					} else if (assResult.status === "error") {
+						Swal.fire(`${assResult?.status}`, `${assResult?.message}`, "error");
+						// openDescriptiveUploadModal()
+					}
+
+				} catch (error) {
+					if (error.message == "TypeError: Network request failed") {
+						alert("Network Error", `Please try again.`)
+					}
+				}
+				finally { setLoader(false) }
+
+			})
+		} else {
+			Swal.fire("Please attempt at least one question");
 		}
 	}
 
@@ -870,7 +902,6 @@ function App() {
 				<Attempt
 					allAssessmentData={allAssessmentData?.questions} // all assessment questions array.
 					prevBtn={prevBtn} //Prev button
-					submitBtn={submitBtn} // Submit button
 					nextBtn={nextBtn} // Next button
 					currentIndex={currentIndex} // page index
 					qNumber={allAssessmentData?.qNumber} // assessment question number.

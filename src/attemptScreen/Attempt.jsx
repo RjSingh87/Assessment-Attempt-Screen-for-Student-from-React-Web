@@ -11,7 +11,6 @@ import { SWATheam } from '../../constant'
 export default function Attempt({
   allAssessmentData,
   prevBtn,
-  submitBtn, // just testing not in use
   submitAttem,
   nextBtn,
   currentIndex,
