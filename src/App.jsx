@@ -95,10 +95,10 @@ function App() {
 			console.log("Browser mode");
 
 			getAssQuest({
-				assessmentID: 119,
-				classID: 6,
-				schoolID: 1,
-				userRefID: 1472
+				assessmentID: 1843,
+				classID: 1,
+				schoolID: 60,
+				userRefID: 1598
 			});
 		}
 	}, []);

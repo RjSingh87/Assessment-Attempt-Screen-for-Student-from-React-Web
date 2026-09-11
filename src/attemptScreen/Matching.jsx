@@ -9,23 +9,24 @@ export default function Matching({ matchQues, currentIndex, qNumber, siteUrls, m
   const { questionImageHight, optionImageHight } = matchQues?.[currentIndex] || {} // dynamic question and option image height.
   const circleRefs = useRef({});
   const svgWrapperRef = useRef(null);
-  const [isPortrait, setIsPortrait] = useState(window.matchMedia("(orientation: portrait)").matches);
-
-
+  // const [isPortrait, setIsPortrait] = useState(window.matchMedia("(orientation: portrait)").matches);
 
 
 
   useEffect(() => {
-    const mql = window.matchMedia("(orientation: portrait)");
-    const handleChange = () => setIsPortrait(mql.matches);
-    mql.addEventListener("change", handleChange);
-    return () => mql.removeEventListener("change", handleChange);
-  }, []);
+    // 1. Jab Matching question screen par aaye -> React Native ko Landscape lock karne bhein
+    if (window.ReactNativeWebView) {
+      window.ReactNativeWebView.postMessage("ROTATE_LANDSCAPE");
+    }
+    return () => {
+      // 2. Jab user Next/Prev karke Matching se bahar jaye (MCQ/Fillups par) -> Wapas Portrait lock bhein
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage("ROTATE_PORTRAIT");
+      }
+    };
+  }, [currentIndex]);
 
-  // useEffect(() => {
-  //   if (isPortrait) document.body.style.overflow = "hidden"
-  //   else document.body.style.overflow = "auto"
-  // }, [isPortrait])
+
 
 
 
@@ -199,15 +200,15 @@ export default function Matching({ matchQues, currentIndex, qNumber, siteUrls, m
   return (
     <div className='row'>
 
-      {/* detect portrait mode  */}
-      {isPortrait && (
+      {/* detect portrait mode browser only not real device */}
+      {/* {isPortrait && (
         <div >
           <div className='overlay'>
             <div className='text'>Rotate to Landscape</div>
             <div className='subtext'>{`This activity works best in landscape mode.`}</div>
           </div>
         </div>
-      )}
+      )} */}
 
       <div style={{ width: 35, textAlign: "center", fontWeight: "bold", color: `${SWATheam.SwaBlue}` }}>{qNumber}.</div>
 
