@@ -15,7 +15,7 @@ export default function Descriptive({ descriptiveQues, currentIndex, qNumber, si
   const converIntoMathJax = (data) => {
     if (!data) return null
     data = data.replace(/<MTECHO>/g, '`').replace(/<\/MTECHO>/g, '`');
-    return <span dangerouslySetInnerHTML={{ __html: data }} />;
+    return <span className="question-html-content" dangerouslySetInnerHTML={{ __html: data }} />;
   };
 
 

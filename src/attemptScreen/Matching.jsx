@@ -213,20 +213,20 @@ export default function Matching({ matchQues, currentIndex, qNumber, siteUrls, m
       <div style={{ width: 35, textAlign: "center", fontWeight: "bold", color: `${SWATheam.SwaBlue}` }}>{qNumber}.</div>
 
       <div className='col'>
-        <div>{matchQues?.[currentIndex]?.questionHeading}</div>
-        <div className='row text-center g-0 my-3' >
+        <div>{converIntoMathJax(matchQues?.[currentIndex]?.questionHeading)}</div>
+        <div className='row g-0 my-2' >
           {Object.entries(matchQues?.[currentIndex] ?? {})
             .filter(([key, value]) => /^questionPart\d+$/.test(key) && value) // Filter questionPart1...questionPart5
             .map(([key, value]) => {
               if (!value) return null;
               const isImage = /\.(png|jpg|jpeg)$/i.test(value);
               const uri = `${siteUrls}${matchQues?.[currentIndex]?.imagePath}${value}`;
-              if (!isImage) value = value.replace(/<MTECHO>/g, '`').replace(/<\/MTECHO>/g, '`');
+              if (!isImage) value = value.replace(/<MTECHO>/g, '`').replace(/<\/MTECHO>/g, '`').replace(/&nbsp;|&#160;|&#xA0;/gi, '').trim();
               return (
-                <div key={key} className='col border' style={{ backgroundColor: `${SWATheam.SwaBlue}`, padding: "5px" }}>
+                <div key={key} className='col border text-center' style={{ backgroundColor: `${SWATheam.SwaBlue}`, padding: "5px" }}>
                   {isImage ?
                     <div className='my-2'> <img className='my-2 mx-auto d-block' draggable={false} src={uri} style={{ maxHeight: `${questionImageHight}px`, width: "auto", maxWidth: "100%", objectFit: "contain" }} alt='swaadhyayan' /></div> :
-                    <div style={{ fontWeight: "400", color: `${SWATheam.SwaWhite}`, }}>{converIntoMathJax(value)}</div>
+                    <div style={{ fontWeight: "bold", color: `${SWATheam.SwaWhite}`, }}>{converIntoMathJax(value)}</div>
                   }
                 </div>
               )
@@ -279,7 +279,7 @@ export default function Matching({ matchQues, currentIndex, qNumber, siteUrls, m
             >
 
               {/* LEFT DATA */}
-              <div onClick={() => handleSelect(row.left)} className="col-4 d-flex justify-content-center align-items-center p-3">
+              <div onClick={() => handleSelect(row.left)} className="col-4 d-flex justify-content-center align-items-center p-3 text-center">
                 {row.left.label}
               </div>
 
@@ -323,7 +323,7 @@ export default function Matching({ matchQues, currentIndex, qNumber, siteUrls, m
               </div>
 
               {/* RIGHT DATA */}
-              <div onClick={() => handleSelect(row.right)} className="col-4 d-flex justify-content-center align-items-center p-3">
+              <div onClick={() => handleSelect(row.right)} className="col-4 d-flex justify-content-center align-items-center p-3 text-center">
                 {row.right.label}
               </div>
 

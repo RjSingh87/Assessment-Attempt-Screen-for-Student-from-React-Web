@@ -95,7 +95,7 @@ function App() {
 			console.log("Browser mode");
 
 			getAssQuest({
-				assessmentID: 1843,
+				assessmentID: 2390,//2396, 2380
 				classID: 1,
 				schoolID: 60,
 				userRefID: 1598

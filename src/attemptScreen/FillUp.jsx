@@ -53,7 +53,7 @@ export default function FillUp({ fillBlanksQues, currentIndex, qNumber, siteUrls
           if (!part) return null;
           const isImg = /\.(png|jpg|jpeg)$/i.test(part);
           const uri = `${siteUrls}${question?.imagePath}${part}`;
-          part = part.replace(/<MTECHO>/g, '`').replace(/<\/MTECHO>/g, '`');
+          part = part.replace(/<MTECHO>/g, '`').replace(/<\/MTECHO>/g, '`').replace(/&nbsp;|&#160;|&#xA0;/gi, '').replace(/#/g, '..................').trim();
 
 
 

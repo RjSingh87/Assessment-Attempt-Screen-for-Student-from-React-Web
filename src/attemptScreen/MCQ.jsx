@@ -7,8 +7,16 @@ export default function MCQ({ mcqQues, indexNo, currentIndex, qNumber, mcqClicke
     window.MathJax.Hub.Typeset();
   },)
 
+  const cleanHtml = (data = '') => {
+    return data
+      .replace(/<MTECHO>/g, '`')
+      .replace(/<\/MTECHO>/g, '`')
+      .replace(/&nbsp;|&#160;|&#xA0;/gi, '')
+      .trim();
+  };
 
-  const converIntoMathJax = (data) => (<div dangerouslySetInnerHTML={{ __html: data }} />);
+
+  const converIntoMathJax = (data) => (<div dangerouslySetInnerHTML={{ __html: cleanHtml(data) }} />);
 
 
 
@@ -45,7 +53,7 @@ export default function MCQ({ mcqQues, indexNo, currentIndex, qNumber, mcqClicke
   const Option = ({ optionText, optionID, optionImage, questionID, currentAns, optionLabel }) => {
     if (!optionText && !optionImage) return null;
 
-    if (optionText) optionText = optionText.replace(/<MTECHO>/g, '`').replace(/<\/MTECHO>/g, '`'); // convert mathjax tags
+    if (optionText) optionText = cleanHtml(optionText); // convert mathjax tags
 
     const isImage = optionImage && /\.(png|jpg|jpeg)$/i.test(optionImage); // check option is image or not
     const uri = `${siteUrls}${question?.imagePath}${optionImage}`;
@@ -80,14 +88,16 @@ export default function MCQ({ mcqQues, indexNo, currentIndex, qNumber, mcqClicke
     <div className='row'>
       <div style={{ width: 35, textAlign: "center", fontWeight: "bold", color: `${SWATheam.SwaBlue}` }}>{qNumber}.</div>
 
-      <div className='col px-1'>
+      <div className='col'>
         {/* -------------------------------question heading -------------------------------------------------*/}
         {questionParts.map((part, index) => {
           if (!part) return null;
           const isImage = /\.(png|jpg|jpeg)$/i.test(part);
           const uri = `${siteUrls}${question?.imagePath}${part}`;
 
-          if (!isImage) part = part.replace(/<MTECHO>/g, '`').replace(/<\/MTECHO>/g, '`').trim();
+          if (!isImage) {
+            part = cleanHtml(part);
+          }
 
 
           return (

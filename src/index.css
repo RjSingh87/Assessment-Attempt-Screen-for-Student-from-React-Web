@@ -214,3 +214,25 @@ body{
   .childMargin p{
     margin-bottom: 0px;
   }
+
+
+.question-html-content {
+  display: block;
+  width: 100%;
+}
+
+.question-html-content figure.image {
+  margin: 10px auto;
+  max-width: 100%;
+  text-align: center;
+}
+
+.question-html-content img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 250px;
+  object-fit: contain;
+  margin: 10px auto;
+}

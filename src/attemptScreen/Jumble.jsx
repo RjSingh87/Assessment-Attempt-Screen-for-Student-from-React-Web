@@ -35,6 +35,7 @@ export default function Jumble({ jumbleQues, currentIndex, qNumber, siteUrls, so
   };
 
   const GetQuestionAndOption = (queNOption) => {
+    // console.log(queNOption, "queNOption")
     const allTypeQueOption = []
     for (let i = 1; i <= 8; i++) {
       const quesHeading = queNOption[`questionHeading`] || ""
@@ -42,14 +43,15 @@ export default function Jumble({ jumbleQues, currentIndex, qNumber, siteUrls, so
       const optText = queNOption[`optionText${i}`] || ""
       const optImage = queNOption[`optionImage${i}`] || ""
       const targetTxt = queNOption[`targetText${i}`] || ""
-      const jumbleLetters = targetTxt ? targetTxt.split(",").map(v => v.trim()) : [];
-      if (quesHeading || quesPart || optText || optImage) allTypeQueOption.push({ quesHeading, quesPart, optText, optImage, jumbleLetters })
+      const jumbleLetters = targetTxt ? targetTxt.split(",")?.map(v => v.trim()) : [];
+      const subActivityID = queNOption[`subActivityID`] || ""
+      if (quesHeading || quesPart || optText || optImage) allTypeQueOption.push({ quesHeading, quesPart, optText, optImage, jumbleLetters, subActivityID })
     }
     return allTypeQueOption
   }
 
 
-  const LetterSortableRow = ({ optionIndex, letters, currentIndex, optionImage }) => {
+  const LetterSortableRow = ({ optionIndex, letters, currentIndex, optionImage, subActivityID }) => {
 
     const [localLetters, setLocalLetters] = useState(letters);
     const [activeIndex, setActiveIndex] = useState(null);
@@ -193,7 +195,7 @@ export default function Jumble({ jumbleQues, currentIndex, qNumber, siteUrls, so
           </div>
         )}
 
-        {localLetters.map((letter, idx) => {
+        {localLetters?.map((letter, idx) => {
           const isHidden = idx === activeIndex;
 
           return (
@@ -202,8 +204,8 @@ export default function Jumble({ jumbleQues, currentIndex, qNumber, siteUrls, so
               data-index={idx}
               onTouchStart={(e) => handleTouchStart(idx, e)}
               style={{
-                width: "45px",
-                height: "45px",
+                minWidth: "40px",
+                padding: "5px",
                 marginRight: 8,
                 marginTop: 8,
                 borderRadius: 6,
@@ -374,13 +376,14 @@ export default function Jumble({ jumbleQues, currentIndex, qNumber, siteUrls, so
       <div style={{ width: "40px", textAlign: "center", fontWeight: "bold", color: `${SWATheam.SwaBlue}` }}>{qNumber}.</div>
       <div className='col'>
 
-        {GetQuestionAndOption(data).map((val, index) => {
+        {GetQuestionAndOption(data)?.map((val, index) => {
           // console.log(val, "value..")
           if (!val) return null;
           const isImage = /\.(png|jpg|jpeg)$/i.test(val.quesPart);
           const uri = `${siteUrls}${data?.imagePath}${val.quesPart}`;
           const optionData = sortedLetters[currentIndex]?.[index];
           const letters = Array.isArray(optionData) ? optionData : optionData?.letters || [];
+          const subActivityID = val?.subActivityID
 
 
           return (
@@ -397,13 +400,14 @@ export default function Jumble({ jumbleQues, currentIndex, qNumber, siteUrls, so
               <div className='rowDD'>
                 <div style={{ fontWeight: 700, width: 30 }}>{String.fromCharCode(97 + index)}.</div>
                 <div className='col'>
-                  <div>{converIntoMathJax(val?.optText)}</div>
-                  <div className='d-flex flex-wrap py-2'>
+                  <div>{subActivityID !== 1 ? converIntoMathJax(val?.optText) : null}</div>
+                  <div className={subActivityID !== 1 ? 'd-flex flex-wrap py-2' : 'd-flex flex-wrap'} >
                     <LetterSortableRow
                       optionIndex={index}
                       letters={letters}
                       currentIndex={currentIndex}
                       optionImage={val?.optImage}
+                      subActivityID={subActivityID}
                     />
                   </div>
 
