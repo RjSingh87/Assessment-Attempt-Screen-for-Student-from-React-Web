@@ -1,19 +1,64 @@
 import React, { useEffect, useState } from 'react'
 import { SWATheam } from '../../constant'
 
+// Clean math and HTML formatting helper for fractions and MathJax
+const cleanAndFormatMath = (data) => {
+  if (!data) return '';
+  let str = String(data);
+
+  // Fix malformed closing </br> tags to standard <br/>
+  str = str.replace(/<\/\s*br\s*>/gi, '<br/>');
+
+  // Collapse multiple &nbsp; or non-breaking spaces into a single space
+  str = str.replace(/(&nbsp;|&#160;|&#xA0;|\u00A0)+/gi, ' ');
+  str = str.replace(/[ \t\u00A0]{2,}/g, ' ');
+
+  // Convert mixed fractions e.g. <MTECHO>4 7/8</MTECHO> or `4 7/8` to HTML (App UI font matching dropdown & text)
+  str = str.replace(/(?:<MTECHO>|`)\s*(\d+)\s+(\d+)\s*\/\s*(\d+)\s*(?:<\/MTECHO>|`)/gi, (_, w, n, d) => {
+    return `<span class="tex2jax_ignore" style="display:inline-flex;align-items:center;vertical-align:middle;margin:0 2px;line-height:1;font-family:inherit;font-size:inherit;"><span style="margin-right:4px;font-weight:bold;font-family:inherit;">${w}</span><span style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;text-align:center;font-family:inherit;"><span style="border-bottom:1.5px solid currentColor;padding:0 3px 1px 3px;font-size:0.85em;line-height:1.1;font-family:inherit;font-weight:bold;">${n}</span><span style="padding:1px 3px 0 3px;font-size:0.85em;line-height:1.1;font-family:inherit;font-weight:bold;">${d}</span></span></span>`;
+  });
+
+  // Convert simple fractions e.g. <MTECHO>1/6</MTECHO> or `1/6` to HTML (App UI font matching dropdown & text)
+  str = str.replace(/(?:<MTECHO>|`)\s*(-?\d+)\s*\/\s*(\d+)\s*(?:<\/MTECHO>|`)/gi, (_, n, d) => {
+    return `<span class="tex2jax_ignore" style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;text-align:center;margin:0 2px;line-height:1;font-family:inherit;font-size:inherit;"><span style="border-bottom:1.5px solid currentColor;padding:0 3px 1px 3px;font-size:0.85em;line-height:1.1;font-family:inherit;font-weight:bold;">${n}</span><span style="padding:1px 3px 0 3px;font-size:0.85em;line-height:1.1;font-family:inherit;font-weight:bold;">${d}</span></span>`;
+  });
+
+  // Remaining MTECHO tags replaced with backticks for MathJax
+  str = str.replace(/<MTECHO>/g, '`').replace(/<\/MTECHO>/g, '`');
+
+  return str;
+};
 
 export default function DD({ dropDownQues, currentIndex, qNumber, siteUrls, selectedTexts, setSelectedTexts, dropDownList }) {
   const data = dropDownQues?.[currentIndex] || {}
   const { questionImageHight, optionImageHight } = data // dynamic question and option image height.
 
   useEffect(() => {
-    window.MathJax.Hub.Typeset();
-  },)
+    if (window?.MathJax?.Hub) {
+      try {
+        window.MathJax.Hub.Queue(["Typeset", window.MathJax.Hub]);
+      } catch (e) {
+        // ignore
+      }
+    }
+  }, [currentIndex]);
+
+  const cleanOptionText = (text) => {
+    if (!text) return "";
+    let s = String(text);
+    s = s.replace(/<\/\s*br\s*>/gi, '<br/>');
+    s = s.replace(/(&nbsp;|&#160;|&#xA0;|\u00A0)+/gi, ' ');
+    s = s.replace(/[ \t\u00A0]+#/g, ' #');
+    s = s.replace(/#[ \t\u00A0]+/g, '# ');
+    s = s.replace(/[ \t\u00A0]{2,}/g, ' ');
+    s = s.replace(/#\s+\./g, '#.');
+    return s;
+  };
 
   const converIntoMathJax = (data) => {
-    if (!data) return null
-    data = data.replace(/<MTECHO>/g, '`').replace(/<\/MTECHO>/g, '`');
-    return <span dangerouslySetInnerHTML={{ __html: data }} />;
+    if (!data) return null;
+    let s = cleanAndFormatMath(data);
+    return <span dangerouslySetInnerHTML={{ __html: s }} />;
   };
 
 
@@ -234,7 +279,7 @@ export default function DD({ dropDownQues, currentIndex, qNumber, siteUrls, sele
             if (!value) return null;
             const isImage = /\.(png|jpg|jpeg)$/i.test(value);
             const uri = `${siteUrls}${dropDownQues?.[currentIndex]?.imagePath}${value}`;
-            if (!isImage) value = value.replace(/<MTECHO>/g, '`').replace(/<\/MTECHO>/g, '`').trim();
+            if (!isImage) value = value.replace(/<\/\s*br\s*>/gi, '<br/>').replace(/<MTECHO>/g, '`').replace(/<\/MTECHO>/g, '`').trim();
             return (
               <div key={key} className='col'>
                 {isImage ?
@@ -298,45 +343,55 @@ export default function DD({ dropDownQues, currentIndex, qNumber, siteUrls, sele
         {/* --------//render options only ----------*/}
         {ConvertToOption(data)?.map((opt, idx) => {
           const dropdownValues = opt.targetGroups;
-          const blanksCount = (opt.text.match(/#/g) || []).length;
-          const parts = opt.text.split("#");
+          const cleanedText = cleanOptionText(opt.text);
+          const blanksCount = (cleanedText.match(/#/g) || []).length;
+          const parts = cleanedText.split("#");
           return (
             <div key={idx} className='rowDD'>
-              <div style={{ fontWeight: 700, width: "30px" }}>{String.fromCharCode(97 + idx)}.</div>
-              <div className='col d-flex flex-wrap g-0'>
-                {parts.map((p, i) => {
-                  return (
-                    <div key={i}>
-                      <span> {converIntoMathJax(p)}  </span>
-                      {i < blanksCount && (
-                        <select
-                          value={selectedTexts[currentIndex]?.[idx]?.[i] || ""}
-                          onChange={(e) => {
-                            getUserAnswersDropdownWithOptIDUnattemptedCount(e, idx, i)
-                          }}
-                        >
-                          <option disabled value="">Select</option>
-                          {dropdownValues[i]?.map((op, ii) => (
-                            <option key={ii} value={op}>{op}</option>
-                          ))}
-                        </select>
-                      )}
-                    </div>
-                  )
-                })}
+              <div style={{ fontWeight: 700, width: "30px", flexShrink: 0 }}>{String.fromCharCode(97 + idx)}.</div>
+              <div className='col' style={{ lineHeight: '34px' }}>
+                {parts.map((p, i) => (
+                  <React.Fragment key={i}>
+                    <span>{converIntoMathJax(p)}</span>
+                    {i < blanksCount && (
+                      <select
+                        style={{
+                          display: 'inline-block',
+                          margin: '0 4px',
+                          verticalAlign: 'middle',
+                          padding: '2px 6px',
+                          borderRadius: '6px',
+                          fontFamily: 'inherit',
+                          fontSize: 'inherit'
+                        }}
+                        value={selectedTexts[currentIndex]?.[idx]?.[i] || ""}
+                        onChange={(e) => {
+                          getUserAnswersDropdownWithOptIDUnattemptedCount(e, idx, i)
+                        }}
+                      >
+                        <option disabled value="">Select</option>
+                        {dropdownValues[i]?.map((op, ii) => (
+                          <option key={ii} value={op}>{op}</option>
+                        ))}
+                      </select>
+                    )}
+                  </React.Fragment>
+                ))}
 
                 {opt?.img && (
-                  <img
-                    draggable={false}
-                    src={`${siteUrls}${data?.imagePath}${opt?.img}`}
-                    style={{
-                      width: "auto",
-                      maxWidth: "100%",
-                      maxHeight: `${optionImageHight}px`,
-                      objectFit: "contain",
-                      marginTop: "5px"
-                    }}
-                  />
+                  <div>
+                    <img
+                      draggable={false}
+                      src={`${siteUrls}${data?.imagePath}${opt?.img}`}
+                      style={{
+                        width: "auto",
+                        maxWidth: "100%",
+                        maxHeight: `${optionImageHight}px`,
+                        objectFit: "contain",
+                        marginTop: "5px"
+                      }}
+                    />
+                  </div>
                 )}
               </div>
             </div>

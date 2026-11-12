@@ -49,7 +49,7 @@ export default function Attempt({
   return (
     <div className='questionHolder'>
       {/* <div>Current Index No. {currentIndex}</div> */}
-      <div className='container ps-1' style={{ paddingBottom: "5.5vh" }}>
+      <div className='container ps-1'>
 
         {allAssessmentData[currentIndex]?.activityID === 1 ?
           <MCQ mcqQues={allAssessmentData} currentIndex={currentIndex} qNumber={qNumber} totalQuest={totalQuest} mcqClicked={mcqClicked} siteUrls={siteUrls} currentAns={currentAns} /> :
@@ -73,21 +73,8 @@ export default function Attempt({
 
       </div>
 
-      <div className='btnRow'>
-        <button onClick={prevBtn} className='btn' style={{ color: `${SWATheam.SwaWhite}`, backgroundColor: `${SWATheam.SwaBlue}`, display: `${currentIndex === 0 ? "none" : "block"}` }}>Prev</button>
-
-        {allNonDescriptiveAttempted &&
-          <button onClick={submitAttem} className='btn' style={{ color: `${SWATheam.SwaWhite}`, backgroundColor: `${SWATheam.SwaGreen}` }}>Submit</button>
-        }
-        {/* {currentIndex === totalQuest - 1 ?
-          <button onClick={submitAttem} className='btn' style={{ color: `${SWATheam.SwaWhite}`, backgroundColor: `${SWATheam.SwaGreen}` }}>Submit</button> : null
-        } */}
-
-        <button onClick={nextBtn} className='btn' style={{ color: `${SWATheam.SwaWhite}`, backgroundColor: `${SWATheam.SwaBlue}`, display: `${currentIndex === allAssessmentData.length - 1 ? "none" : "block"}` }}>Next</button>
-      </div>
-
       {isDescriptive &&
-        <div>Please upload the descriptive questions....</div>
+        <div style={{ textAlign: 'center', padding: '10px', color: '#64748b' }}>Please upload the descriptive questions....</div>
       }
 
     </div>

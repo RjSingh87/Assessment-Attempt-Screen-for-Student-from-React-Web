@@ -8,6 +8,8 @@ import Swal from 'sweetalert2'
 import AssessmentTimer from './AssessmentTimer';
 import Instruction from './Instruction';
 import DescriptiveTypeUploadFile from './DescriptiveTypeUploadFile'
+import AssessmentHeader from './attemptScreen/AssessmentHeader';
+import AssessmentFooter from './attemptScreen/AssessmentFooter';
 
 
 
@@ -26,6 +28,7 @@ function App() {
 	const [matchLines, setMatchLines] = useState({});
 	const [selectedTexts, setSelectedTexts] = useState({});
 	const [sortedLetters, setSortedLetters] = useState({})
+	const [markedForReview, setMarkedForReview] = useState(new Set());
 
 	const [showDescModal, setShowDescModal] = useState(false);
 	const [descFile, setDescFile] = useState(null);
@@ -95,10 +98,11 @@ function App() {
 			console.log("Browser mode");
 
 			getAssQuest({
-				assessmentID: 2390,//2396, 2380
+				assessmentID: 2515,//2396,//2396, 2380
 				classID: 1,
 				schoolID: 60,
-				userRefID: 1598
+				userRefID: 1598,
+				totalTime: "01:00:00"
 			});
 		}
 	}, []);
@@ -166,7 +170,7 @@ function App() {
 				const sectionID = result?.sectionID;
 				const userRefID = result?.userRefID;
 				const siteUrls = result?.siteUrl;
-				const totalTime = data?.totalTime
+				const totalTime = data?.totalTime || result?.totalTime || assData?.[0]?.totalTime || "01:00:00";
 
 				setUserDetails((prev) => { return { ...prev, classID: payload.classID, schoolCode: payload.schoolID, userRefID: payload.userRefID, assessmentID: payload.assessmentID } }) //userDetails data...
 
@@ -194,18 +198,38 @@ function App() {
 
 
 
+	const jumpToQuestion = (index) => {
+		const total = allAssessmentData?.questions?.length || 0;
+		if (index >= 0 && index < total) {
+			setCurrentIndex(index);
+			setAllAssessmentData((prev) => ({ ...prev, qNumber: index + 1 }));
+		}
+	};
+
+	const toggleMarkForReview = (index = currentIndex) => {
+		setMarkedForReview(prev => {
+			const next = new Set(prev);
+			if (next.has(index)) {
+				next.delete(index);
+			} else {
+				next.add(index);
+			}
+			return next;
+		});
+	};
+
 	const prevBtn = () => {
-		setCurrentIndex(currentIndex - 1)// current question index.
-		setAllAssessmentData((prev) => { return { ...prev, qNumber: prev.qNumber - 1 } }) // set current question ques no.
-		// console.log("From app.js PREV", currentIndex)
-	}
+		if (currentIndex > 0) {
+			jumpToQuestion(currentIndex - 1);
+		}
+	};
 
 	const nextBtn = () => {
-		// console.log(allAssessmentData.questions[currentIndex + 1].activityID, "Next function")		
-		setCurrentIndex(currentIndex + 1) // current question index.
-		setAllAssessmentData((prev) => { return { ...prev, qNumber: prev.qNumber + 1 } }) // set current question ques no.
-		// console.log("From app.js NEXT", currentIndex)
-	}
+		const total = allAssessmentData?.questions?.length || 0;
+		if (currentIndex < total - 1) {
+			jumpToQuestion(currentIndex + 1);
+		}
+	};
 
 
 	// this function update and replace value, agar first time value enter karta hai to update agar pahle se value hai to replace.
@@ -864,85 +888,99 @@ function App() {
 
 
 	return (
-		<div className="App">
+		<div className="App" style={{ display: 'flex', flexDirection: 'column', height: '100vh', maxHeight: '100vh', overflow: 'hidden', backgroundColor: '#f1f5f9' }}>
 
-			<div className='p-1 assDetailContainer'>
-
-				<div className='d-flex justify-content-between align-items-center'>
-					<div className='hr'>{`Asse. Name: ${allAssessmentData?.questions[0]?.assessmentName ?? "N/A"}`}</div>
-					<Instruction />
-				</div>
-				<hr className='my-1'></hr>
-
-				<div className='d-flex justify-content-between'>
-					<div>{`Subject: ${allAssessmentData?.questions[0]?.subjectName ?? "N/A"}`}</div>
-					<div>{`Total Marks: ${allAssessmentData?.totalMks ?? "0"}`}</div>
-				</div>
-
-
-				<div className='d-flex justify-content-between'>
-					<div>{`Attempted Ques: ${attemptedCount ?? "0"} / ${allAssessmentData?.totalQuest ?? "0"}`}</div>
-					<div>
-						<AssessmentTimer
-							totalTime={allAssessmentData?.totalTime}
-							unattemptedQuesCount={unattemptedQuestions}
-						/>
-					</div>
-				</div>
-			</div>
+			{/* Reusable Assessment Header (Navbar + Summary Card + Progress Bar) */}
+			<AssessmentHeader
+				assessmentName={allAssessmentData?.questions[0]?.assessmentName ?? allAssessmentData?.AssName ?? "N/A"}
+				subjectName={allAssessmentData?.questions[0]?.subjectName ?? "N/A"}
+				attemptedCount={attemptedCount ?? 0}
+				totalQuest={allAssessmentData?.totalQuest ?? allAssessmentData?.questions?.length ?? 0}
+				totalMks={allAssessmentData?.totalMks ?? "0"}
+				totalTime={allAssessmentData?.totalTime}
+				unattemptedQuestions={unattemptedQuestions}
+				currentIndex={currentIndex}
+			/>
 
 			{showDescModal &&
 				<DescriptiveTypeUploadFile setShowDescModal={setShowDescModal} allAssessmentData={allAssessmentData} />
 			}
 
+			{/* Main Scrollable Question Content Area */}
+			<div
+				className="mainQuestionContainer"
+				style={{
+					flex: 1,
+					minHeight: 0,
+					overflowY: 'auto',
+					WebkitOverflowScrolling: 'touch',
+					paddingBottom: '95px'
+				}}
+			>
+				{/* data prop drilling.... */}
+				{allAssessmentData?.questions?.length > 0 ?
+					<Attempt
+						allAssessmentData={allAssessmentData?.questions} // all assessment questions array.
+						prevBtn={prevBtn} //Prev button
+						nextBtn={nextBtn} // Next button
+						currentIndex={currentIndex} // page index
+						qNumber={allAssessmentData?.qNumber} // assessment question number.
+						totalQuest={allAssessmentData?.totalQuest} // total assessment questions
+						siteUrls={allAssessmentData?.siteUrls} // base urls
+						isDescriptive={isDescriptive} // Descriptive type question popup
+						mcqClicked={mcqClicked} // MCQ attempt data store
+						tnfAction={tnfAction} //TNF attempt data store
+						currentAns={currentAns} // current answer
+						currOption={currOption}// current options
+						onchangeGetData={onchangeGetData} // FillUp option data store
+						storeData={storeData} // FillUp option stored data
 
 
-			{/* data prop drilling.... */}
-			{allAssessmentData?.questions?.length > 0 ?
-				<Attempt
-					allAssessmentData={allAssessmentData?.questions} // all assessment questions array.
-					prevBtn={prevBtn} //Prev button
-					nextBtn={nextBtn} // Next button
-					currentIndex={currentIndex} // page index
-					qNumber={allAssessmentData?.qNumber} // assessment question number.
-					totalQuest={allAssessmentData?.totalQuest} // total assessment questions
-					siteUrls={allAssessmentData?.siteUrls} // base urls
-					isDescriptive={isDescriptive} // Descriptive type question popup
-					mcqClicked={mcqClicked} // MCQ attempt data store
-					tnfAction={tnfAction} //TNF attempt data store
-					currentAns={currentAns} // current answer
-					currOption={currOption}// current options
-					onchangeGetData={onchangeGetData} // FillUp option data store
-					storeData={storeData} // FillUp option stored data
+						dropedData={dropedData}//user drop data for DND
+						setDropedData={setDropedData} //Drag and Drop DND store data
+						dragDrop={dragDrop} // for drag and drop collect data function
 
 
-					dropedData={dropedData}//user drop data for DND
-					setDropedData={setDropedData} //Drag and Drop DND store data
-					dragDrop={dragDrop} // for drag and drop collect data function
+						matchLines={matchLines}//for match lines state
+						setMatchLines={setMatchLines}//for set match lines state function
+						matchingDataFun={matchingDataFun}//for matching question data function
 
+						selectedTexts={selectedTexts} //for DD selected text state
+						setSelectedTexts={setSelectedTexts} // for DD selected text set function
+						dropDownList={dropDownList} // drop down list function
 
-					matchLines={matchLines}//for match lines state
-					setMatchLines={setMatchLines}//for set match lines state function
-					matchingDataFun={matchingDataFun}//for matching question data function
-
-					selectedTexts={selectedTexts} //for DD selected text state
-					setSelectedTexts={setSelectedTexts} // for DD selected text set function
-					dropDownList={dropDownList} // drop down list function
-
-					sortedLetters={sortedLetters}
-					setSortedLetters={setSortedLetters}
-					jumBlePayLoad={jumBlePayLoad}
+						sortedLetters={sortedLetters}
+						setSortedLetters={setSortedLetters}
+						jumBlePayLoad={jumBlePayLoad}
 
 
 
 
-					submitAttem={submitAttem} // submit attempt function
-					allNonDescriptiveAttempted={allNonDescriptiveAttempted}//for submit button show
-					attemptedCount={attemptedCount}//attempted counting
-					unattemptedQuestions={unattemptedQuestions}//unattempted counting
+						submitAttem={submitAttem} // submit attempt function
+						allNonDescriptiveAttempted={allNonDescriptiveAttempted}//for submit button show
+						attemptedCount={attemptedCount}//attempted counting
+						unattemptedQuestions={unattemptedQuestions}//unattempted counting
+					/>
+					: <Loader />
+				}
+			</div>
+
+			{/* Reusable Assessment Footer (Collapsible Question Palette + Status + Navigation) */}
+			{allAssessmentData?.questions?.length > 0 && (
+				<AssessmentFooter
+					totalQuest={allAssessmentData?.totalQuest ?? allAssessmentData?.questions?.length ?? 0}
+					currentIndex={currentIndex}
+					questions={allAssessmentData?.questions}
+					attemptedIds={attemptedIds}
+					markedForReview={markedForReview}
+					onToggleMarkForReview={toggleMarkForReview}
+					onJumpToQuestion={jumpToQuestion}
+					onPrev={prevBtn}
+					onNext={nextBtn}
+					onSubmit={submitAttem}
+					allNonDescriptiveAttempted={allNonDescriptiveAttempted}
 				/>
-				: <Loader />
-			}
+			)}
 
 
 			{/* {userData ? (

@@ -1,31 +1,39 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { SWATheam } from '../../constant';
 
+// Clean math and HTML formatting helper for fractions and MathJax
+const cleanAndFormatMath = (data) => {
+  if (!data) return '';
+  let str = String(data);
+
+  // Fix malformed closing </br> tags to standard <br/>
+  str = str.replace(/<\/\s*br\s*>/gi, '<br/>');
+
+  // Collapse multiple &nbsp; or non-breaking spaces into a single space
+  str = str.replace(/(&nbsp;|&#160;|&#xA0;|\u00A0)+/gi, ' ');
+  str = str.replace(/[ \t\u00A0]{2,}/g, ' ');
+
+  // Convert mixed fractions e.g. <MTECHO>4 7/8</MTECHO> or `4 7/8` to HTML (matching normal text font)
+  str = str.replace(/(?:<MTECHO>|`)\s*(\d+)\s+(\d+)\s*\/\s*(\d+)\s*(?:<\/MTECHO>|`)/gi, (_, w, n, d) => {
+    return `<span class="tex2jax_ignore" style="display:inline-flex;align-items:center;vertical-align:middle;margin:0 2px;line-height:1;font-family:inherit;font-size:inherit;font-weight:inherit;"><span style="margin-right:4px;font-family:inherit;font-size:inherit;font-weight:inherit;">${w}</span><span style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;text-align:center;font-family:inherit;font-weight:inherit;"><span style="border-bottom:1.5px solid currentColor;padding:0 2px 1px 2px;font-size:0.85em;line-height:1.1;font-family:inherit;font-weight:inherit;">${n}</span><span style="padding:1px 2px 0 2px;font-size:0.85em;line-height:1.1;font-family:inherit;font-weight:inherit;">${d}</span></span></span>`;
+  });
+
+  // Convert simple fractions e.g. <MTECHO>1/6</MTECHO> or `1/6` to HTML (matching normal text font)
+  str = str.replace(/(?:<MTECHO>|`)\s*(-?\d+)\s*\/\s*(\d+)\s*(?:<\/MTECHO>|`)/gi, (_, n, d) => {
+    return `<span class="tex2jax_ignore" style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;text-align:center;margin:0 2px;line-height:1;font-family:inherit;font-size:inherit;font-weight:inherit;"><span style="border-bottom:1.5px solid currentColor;padding:0 2px 1px 2px;font-size:0.85em;line-height:1.1;font-family:inherit;font-weight:inherit;">${n}</span><span style="padding:1px 2px 0 2px;font-size:0.85em;line-height:1.1;font-family:inherit;font-weight:inherit;">${d}</span></span>`;
+  });
+
+  // Remaining MTECHO tags replaced with backticks for MathJax
+  str = str.replace(/<MTECHO>/g, '`').replace(/<\/MTECHO>/g, '`');
+
+  return str;
+};
+
 export default function MCQ({ mcqQues, indexNo, currentIndex, qNumber, mcqClicked, siteUrls, currentAns }) {
-
-  useEffect(() => {
-    window.MathJax.Hub.Typeset();
-  },)
-
-  const cleanHtml = (data = '') => {
-    return data
-      .replace(/<MTECHO>/g, '`')
-      .replace(/<\/MTECHO>/g, '`')
-      .replace(/&nbsp;|&#160;|&#xA0;/gi, '')
-      .trim();
-  };
-
-
-  const converIntoMathJax = (data) => (<div dangerouslySetInnerHTML={{ __html: cleanHtml(data) }} />);
-
-
+  const containerRef = useRef(null);
 
   const question = mcqQues[currentIndex] // all assessment questions with current index
   const { questionImageHight, optionImageHight } = question || {} // dynamic question and option image height.
-
-
-
-
 
   const questionParts = [
     question?.questionPart1,
@@ -44,6 +52,40 @@ export default function MCQ({ mcqQues, indexNo, currentIndex, qNumber, mcqClicke
     { optionText: question?.optionText7, optionImage: question?.optionImage7, optionID: question?.optionID7, label: 'g.' },
     { optionText: question?.optionText8, optionImage: question?.optionImage8, optionID: question?.optionID8, label: 'h.' },
   ];
+
+  useEffect(() => {
+    if (!window?.MathJax?.Hub || !containerRef.current) return;
+
+    // Check if any question part or option text has unhandled math formula needing MathJax
+    const allTexts = [
+      ...(questionParts || []),
+      ...(options || []).map(o => o.optionText)
+    ].filter(Boolean);
+
+    const hasMath = allTexts.some(text => {
+      const formatted = cleanAndFormatMath(text);
+      return formatted.includes('`');
+    });
+
+    if (hasMath) {
+      try {
+        window.MathJax.Hub.Queue(["Typeset", window.MathJax.Hub, containerRef.current]);
+      } catch (e) {
+        // ignore
+      }
+    }
+  }, [currentIndex]);
+
+  const cleanHtml = (data = '') => {
+    return data
+      .replace(/<MTECHO>/g, '`')
+      .replace(/<\/MTECHO>/g, '`')
+      .replace(/&nbsp;|&#160;|&#xA0;/gi, '')
+      .trim();
+  };
+
+
+  const converIntoMathJax = (data) => (<div dangerouslySetInnerHTML={{ __html: cleanAndFormatMath(data) }} />);
 
   const handleMcqClick = useCallback((optionID, questionID, optionText) => {
     mcqClicked(optionID, questionID, optionText);
@@ -85,7 +127,7 @@ export default function MCQ({ mcqQues, indexNo, currentIndex, qNumber, mcqClicke
 
 
   return (
-    <div className='row'>
+    <div ref={containerRef} className='row'>
       <div style={{ width: 35, textAlign: "center", fontWeight: "bold", color: `${SWATheam.SwaBlue}` }}>{qNumber}.</div>
 
       <div className='col'>

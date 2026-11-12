@@ -1,17 +1,52 @@
-import React, { useEffect } from 'react'
+import React, { useEffect } from 'react';
 import { SWATheam } from '../../constant';
+
+// Clean math and HTML formatting helper
+const cleanAndFormatMath = (data) => {
+  if (!data) return '';
+  let str = String(data);
+
+  // Fix malformed closing </br> tags to standard <br/>
+  str = str.replace(/<\/\s*br\s*>/gi, '<br/>');
+
+  // Collapse multiple &nbsp; or non-breaking spaces into a single space
+  str = str.replace(/(&nbsp;|&#160;|&#xA0;)+/gi, ' ');
+  str = str.replace(/[ \t\u00A0]{2,}/g, ' ');
+
+  // Convert mixed fractions e.g. <MTECHO>4 7/8</MTECHO> or `4 7/8` to HTML
+  str = str.replace(/(?:<MTECHO>|`)\s*(\d+)\s+(\d+)\s*\/\s*(\d+)\s*(?:<\/MTECHO>|`)/gi, (_, w, n, d) => {
+    return `<span class="tex2jax_ignore" style="display:inline-flex;align-items:center;vertical-align:middle;margin:0 2px;line-height:1;"><span style="margin-right:4px;font-weight:600;">${w}</span><span style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;text-align:center;"><span style="border-bottom:1.5px solid currentColor;padding:0 3px 1px 3px;font-size:0.85em;line-height:1.1;">${n}</span><span style="padding:1px 3px 0 3px;font-size:0.85em;line-height:1.1;">${d}</span></span></span>`;
+  });
+
+  // Convert simple fractions e.g. <MTECHO>1/6</MTECHO> or `1/6` to HTML
+  str = str.replace(/(?:<MTECHO>|`)\s*(-?\d+)\s*\/\s*(\d+)\s*(?:<\/MTECHO>|`)/gi, (_, n, d) => {
+    return `<span class="tex2jax_ignore" style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;text-align:center;margin:0 2px;line-height:1;"><span style="border-bottom:1.5px solid currentColor;padding:0 3px 1px 3px;font-size:0.85em;line-height:1.1;">${n}</span><span style="padding:1px 3px 0 3px;font-size:0.85em;line-height:1.1;">${d}</span></span>`;
+  });
+
+  // Remaining MTECHO tags replaced with backticks for MathJax
+  str = str.replace(/<MTECHO>/g, '`').replace(/<\/MTECHO>/g, '`');
+
+  return str;
+};
 
 export default function FillUp({ fillBlanksQues, currentIndex, qNumber, siteUrls, storeData, onchangeGetData }) {
 
   useEffect(() => {
-    window.MathJax?.Hub?.Queue(["Typeset", window.MathJax.Hub]);
-  }, [fillBlanksQues, currentIndex]);
+    if (window?.MathJax?.Hub) {
+      try {
+        window.MathJax.Hub.Queue(["Typeset", window.MathJax.Hub]);
+      } catch (e) {
+        // ignore
+      }
+    }
+  }, [currentIndex]);
 
-
-  const converIntoMathJax = (data) => (<span dangerouslySetInnerHTML={{ __html: data }} />);
+  const converIntoMathJax = (data) => (
+    <span dangerouslySetInnerHTML={{ __html: cleanAndFormatMath(data) }} />
+  );
 
   const question = fillBlanksQues[currentIndex]; // get all fillups questions.
-  const { questionImageHight, optionImageHight } = question || {} // dynamic question and option image height.
+  const { questionImageHight, optionImageHight } = question || {};
 
   const questionParts = [
     question?.questionPart1,
@@ -32,30 +67,21 @@ export default function FillUp({ fillBlanksQues, currentIndex, qNumber, siteUrls
     { text: question?.optionText8, img: question?.optionImage8, label: '(h)', key: "optionText8" },
   ];
 
-
-  // all question ka answer input wise by Rj 6 Nov 2025
   const allAnswers = question?.answerText?.replaceAll("???", ",")?.split(',')?.map((a) => a.trim()).filter(Boolean) || [];
   let answerIndex = 0;
-  const queTyped = question?.subActivityID
+  const queTyped = question?.subActivityID;
   let blankIndex = 0;
 
-
-
-
-
   return (
-    <div className='row'>
-      <div style={{ width: 35, textAlign: "center", fontWeight: "bold", color: `${SWATheam.SwaBlue}` }}>{qNumber}.</div>
+    <div className='row' style={{ margin: 0 }}>
+      <div style={{ width: 35, textAlign: "center", fontWeight: "bold", color: `${SWATheam.SwaBlue}`, padding: 0 }}>{qNumber}.</div>
 
-      <div className='col'>
-
+      <div className='col' style={{ padding: "0 4px" }}>
         {questionParts.map((part, idx) => {
           if (!part) return null;
           const isImg = /\.(png|jpg|jpeg)$/i.test(part);
           const uri = `${siteUrls}${question?.imagePath}${part}`;
-          part = part.replace(/<MTECHO>/g, '`').replace(/<\/MTECHO>/g, '`').replace(/&nbsp;|&#160;|&#xA0;/gi, '').replace(/#/g, '..................').trim();
-
-
+          part = part.replace(/&nbsp;|&#160;|&#xA0;/gi, ' ').replace(/#/g, '..................').trim();
 
           return (
             <div key={idx}>
@@ -68,53 +94,109 @@ export default function FillUp({ fillBlanksQues, currentIndex, qNumber, siteUrls
           );
         })}
 
-        <div style={{ backgroundColor: queTyped !== 1 ? "#e8e8e8" : null, borderRadius: "10px", }}>
+        <div style={{ backgroundColor: queTyped !== 1 ? "#e8e8e8" : null, borderRadius: "10px" }}>
           {options.map((o, i) => {
             if (!o.text) return null;
-            o.text = o.text.replace(/<MTECHO>/g, '`').replace(/<\/MTECHO>/g, '`');
-            const partsOfOptions = o.text.split(/(#)/g).filter(p => p.trim() !== "");
+            const formattedOption = cleanAndFormatMath(o.text);
+            const partsOfOptions = formattedOption.split(/(#)/g).filter(p => p !== "");
 
             return (
-              <div className={queTyped === 1 ? "rowMcq" : "rowMcq2"} key={i}>
-                <div className='row'>
-                  {queTyped === 1 &&
-                    <div style={{ fontWeight: 700, width: "40px", }}>{o.label.replace(/\(([a-z])\)/gi, "$1.")}</div>
-                  }
-
-                  <div className={queTyped === 1 ? 'col d-flex align-items-center flex-wrap g-0' : 'col align-items-center flex-wrap'}>
-
-                    {partsOfOptions.map((part, idx2) => {
-                      // console.log({ part, idx2 })
-                      part = part.replace(/&nbsp;/g, "").trim()
-                      if (part === "#") {
-                        const currentAnswer = allAnswers[answerIndex++] || "";
-                        const answerLength = currentAnswer.length || 1;
-                        const inputWidth = 10
-                        let width = 40
-                        if (answerLength > 1) {
-                          width = (answerLength * inputWidth) + 6
-                        }
-                        const realIndex = blankIndex;
-                        blankIndex++;
-
-                        return (
-                          <input
-                            key={idx2}
-                            maxLength={answerLength}
-                            style={{ width: `${width}px`, height: 40, margin: "2px 6px", borderRadius: 4, textAlign: "center", border: `1px solid ${SWATheam.SwaGray}` }}
-                            value={storeData[currentIndex]?.[o.key]?.[realIndex] || ""}
-                            onChange={(e) => onchangeGetData(currentIndex, e.target.value, o.key, realIndex)}
-                          />
-                        );
-                      }
-                      return <span key={idx2} dangerouslySetInnerHTML={{ __html: part }} />;
-                    })}
-
-                    {o.img && (
-                      <img draggable={false} src={`${siteUrls}${question?.imagePath}${o.img}`} style={{ maxWidth: "100%", maxHeight: `${optionImageHight}px`, objectFit: "contain", width: "auto", margin: "10px", padding: "2px", border: "1px solid", borderRadius: "8px", borderColor: "#817a7aff" }} />
-                    )}
-
+              <div
+                className={queTyped === 1 ? "rowMcq" : "rowMcq2"}
+                key={i}
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  boxSizing: "border-box",
+                  width: "100%",
+                  padding: "10px 10px"
+                }}
+              >
+                {queTyped === 1 && (
+                  <div
+                    style={{
+                      fontWeight: 700,
+                      width: "28px",
+                      flexShrink: 0,
+                      color: SWATheam.SwaBlack,
+                      paddingTop: "6px"
+                    }}
+                  >
+                    {o.label.replace(/\(([a-z])\)/gi, "$1.")}
                   </div>
+                )}
+
+                <div
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    wordBreak: "break-word",
+                    lineHeight: "42px"
+                  }}
+                >
+                  {partsOfOptions.map((part, idx2) => {
+                    if (part === "#") {
+                      const currentAnswer = allAnswers[answerIndex++] || "";
+                      const answerLength = currentAnswer.length || 1;
+                      const realIndex = blankIndex++;
+                      const userValue = storeData[currentIndex]?.[o.key]?.[realIndex] || "";
+
+                      // Width set according to answerLength with ample space so text never cuts
+                      const width = Math.min(200, Math.max(48, answerLength * 15 + 26));
+
+                      return (
+                        <input
+                          key={idx2}
+                          maxLength={answerLength}
+                          style={{
+                            width: `${width}px`,
+                            minWidth: "45px",
+                            maxWidth: "100%",
+                            height: 38,
+                            margin: "2px 4px",
+                            padding: "4px 8px",
+                            borderRadius: 6,
+                            textAlign: "center",
+                            fontSize: "17px", // Prevents iOS Safari auto-zoom (< 16px zooms)
+                            fontWeight: "600",
+                            // color: SWATheam.SwaBlue,
+                            border: `1.5px solid ${SWATheam.SwaGray}`,
+                            outline: "none",
+                            verticalAlign: "middle"
+                          }}
+                          value={userValue}
+                          onChange={(e) => onchangeGetData(currentIndex, e.target.value, o.key, realIndex)}
+                        />
+                      );
+                    }
+                    return (
+                      <span
+                        key={idx2}
+                        style={{ verticalAlign: "middle" }}
+                        dangerouslySetInnerHTML={{ __html: part }}
+                      />
+                    );
+                  })}
+
+                  {o.img && (
+                    <img
+                      draggable={false}
+                      src={`${siteUrls}${question?.imagePath}${o.img}`}
+                      style={{
+                        display: "block",
+                        maxWidth: "100%",
+                        maxHeight: `${optionImageHight}px`,
+                        objectFit: "contain",
+                        width: "auto",
+                        margin: "10px 0",
+                        padding: "2px",
+                        border: "1px solid",
+                        borderRadius: "8px",
+                        borderColor: "#817a7aff"
+                      }}
+                      alt=""
+                    />
+                  )}
                 </div>
               </div>
             );

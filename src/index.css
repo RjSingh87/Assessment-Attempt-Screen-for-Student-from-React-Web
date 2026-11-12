@@ -25,10 +25,10 @@ body{
   z-index: 9;
 }
 .questionHolder{
-  padding: 2px;
-  background: #e8e8e8;
-  height: 87vh;
-  overflow: auto;
+  padding: 4px 6px 20px 6px;
+  background: #f1f5f9;
+  width: 100%;
+  box-sizing: border-box;
 }
 .rowMcq{
   display: flex;
@@ -87,6 +87,7 @@ body{
     justify-content: center;
     min-height: 28px;
     border-bottom: 1px solid #8e8b85;
+    vertical-align: middle;
   }
   .container2{
     display: flex;
