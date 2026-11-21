@@ -23,6 +23,23 @@ const cleanAndFormatMath = (data) => {
     return `<span class="tex2jax_ignore" style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;text-align:center;margin:0 2px;line-height:1;font-family:inherit;font-size:inherit;"><span style="border-bottom:1.5px solid currentColor;padding:0 3px 1px 3px;font-size:0.85em;line-height:1.1;font-family:inherit;font-weight:bold;">${n}</span><span style="padding:1px 3px 0 3px;font-size:0.85em;line-height:1.1;font-family:inherit;font-weight:bold;">${d}</span></span>`;
   });
 
+  // Convert standalone operators or symbols wrapped in <MTECHO> or backticks to clean symbols (no backticks)
+  str = str.replace(/(?:<MTECHO>|`)\s*([+\-*/=<>≤≥±×÷−]|\\times|\\div|\\pm|\\le|\\ge|&minus;|&plus;|&times;|&divide;|&lt;|&gt;)\s*(?:<\/MTECHO>|`)/gi, (_, op) => {
+    if (op === '\\times' || op === '&times;' || op === '*') return '×';
+    if (op === '\\div' || op === '&divide;') return '÷';
+    if (op === '\\pm') return '±';
+    if (op === '\\le') return '≤';
+    if (op === '\\ge') return '≥';
+    if (op === '&minus;' || op === '−') return '-';
+    if (op === '&plus;') return '+';
+    if (op === '&lt;') return '<';
+    if (op === '&gt;') return '>';
+    return op;
+  });
+
+  // Also remove any remaining backticks around simple operators
+  str = str.replace(/`\s*([+\-*/=<>≤≥±×÷−])\s*`/g, '$1');
+
   // Remaining MTECHO tags replaced with backticks for MathJax
   str = str.replace(/<MTECHO>/g, '`').replace(/<\/MTECHO>/g, '`');
 

@@ -98,8 +98,8 @@ function App() {
 			console.log("Browser mode");
 
 			getAssQuest({
-				assessmentID: 2515,//2396,//2396, 2380
-				classID: 1,
+				assessmentID: 2594,//2396,//2396, 2380
+				classID: 3,
 				schoolID: 60,
 				userRefID: 1598,
 				totalTime: "01:00:00"

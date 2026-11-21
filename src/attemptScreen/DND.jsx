@@ -1,210 +1,58 @@
 import React, { useState, useRef, useContext, useMemo, useEffect } from "react";
 import { SWATheam } from "../../constant";
 
-// Pure React fraction component - renders instantly without MathJax reload
-const MathFraction = ({ whole, num, den }) => {
-  return (
-    <span
-      className="tex2jax_ignore math-fraction"
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        verticalAlign: "middle",
-        margin: "0 2px",
-        lineHeight: 1,
-        fontFamily: "inherit",
-        fontWeight: "bold",
-        fontSize: "inherit"
-      }}
-    >
-      {whole && (
-        <span style={{ marginRight: "4px", fontSize: "0.85em", lineHeight: "1" }}>
-          {whole}
-        </span>
-      )}
-      <span
-        style={{
-          display: "inline-flex",
-          flexDirection: "column",
-          alignItems: "center",
-          verticalAlign: "middle",
-          textAlign: "center"
-        }}
-      >
-        <span
-          style={{
-            borderBottom: "1.5px solid currentColor",
-            padding: "0 3px 1px 3px",
-            fontSize: "0.85em",
-            lineHeight: "1.1",
-            textAlign: "center",
-            display: "block",
-            minWidth: "10px"
-          }}
-        >
-          {num}
-        </span>
-        <span
-          style={{
-            padding: "1px 3px 0 3px",
-            fontSize: "0.85em",
-            lineHeight: "1.1",
-            textAlign: "center",
-            display: "block",
-            minWidth: "10px"
-          }}
-        >
-          {den}
-        </span>
-      </span>
-    </span>
-  );
-};
+// Clean math and HTML formatting helper for fractions, tags (sup, sub, br) and MathJax
+const cleanAndFormatMath = (data) => {
+  if (data === null || data === undefined) return "";
+  let str = String(data);
 
-// Helper to parse math equations & fractions inside an expression
-const parseMathExpression = (expr) => {
-  let clean = expr
+  // Fix malformed closing </br> tags to standard <br/>
+  str = str.replace(/<\/\s*br\s*>/gi, "<br/>");
+
+  // Collapse multiple &nbsp; or non-breaking spaces into a single space
+  str = str.replace(/(&nbsp;|&#160;|&#xA0;|\u00A0)+/gi, " ");
+  str = str.replace(/[ \t\u00A0]{2,}/g, " ");
+  str = str.replace(/&sbquo;/g, ",");
+  str = str.replace(/&deg;/g, "°");
+
+  // Math symbols replacement
+  str = str
     .replace(/\\times/g, " × ")
     .replace(/\\div/g, " ÷ ")
     .replace(/\\pm/g, " ± ")
     .replace(/\\le/g, " ≤ ")
     .replace(/\\ge/g, " ≥ ");
 
-  const fracRegex = /(\b\d+\s+\d+\s*\/\s*\d+\b)|(\b-?\d+\s*\/\s*\d+\b)/g;
+  // Convert mixed fractions e.g. <MTECHO>4 7/8</MTECHO> or `4 7/8` to HTML (App UI font)
+  str = str.replace(/(?:<MTECHO>|`)\s*(\d+)\s+(\d+)\s*\/\s*(\d+)\s*(?:<\/MTECHO>|`)/gi, (_, w, n, d) => {
+    return `<span class="tex2jax_ignore" style="display:inline-flex;align-items:center;vertical-align:middle;margin:0 2px;line-height:1;font-family:inherit;font-size:inherit;"><span style="margin-right:4px;font-weight:bold;font-family:inherit;">${w}</span><span style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;text-align:center;font-family:inherit;"><span style="border-bottom:1.5px solid currentColor;padding:0 3px 1px 3px;font-size:0.85em;line-height:1.1;font-family:inherit;font-weight:bold;">${n}</span><span style="padding:1px 3px 0 3px;font-size:0.85em;line-height:1.1;font-family:inherit;font-weight:bold;">${d}</span></span></span>`;
+  });
 
-  let lastIndex = 0;
-  const elements = [];
-  let m;
-  let key = 0;
+  // Convert simple fractions e.g. <MTECHO>1/6</MTECHO> or `1/6` to HTML (App UI font)
+  str = str.replace(/(?:<MTECHO>|`)\s*(-?\d+)\s*\/\s*(\d+)\s*(?:<\/MTECHO>|`)/gi, (_, n, d) => {
+    return `<span class="tex2jax_ignore" style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;text-align:center;margin:0 2px;line-height:1;font-family:inherit;font-size:inherit;"><span style="border-bottom:1.5px solid currentColor;padding:0 3px 1px 3px;font-size:0.85em;line-height:1.1;font-family:inherit;font-weight:bold;">${n}</span><span style="padding:1px 3px 0 3px;font-size:0.85em;line-height:1.1;font-family:inherit;font-weight:bold;">${d}</span></span>`;
+  });
 
-  while ((m = fracRegex.exec(clean)) !== null) {
-    if (m.index > lastIndex) {
-      elements.push(
-        <span key={`sub-txt-${key++}`}>{clean.substring(lastIndex, m.index)}</span>
-      );
-    }
-    const matched = m[0];
-    const mixed = matched.match(/^(\d+)\s+(\d+)\s*\/\s*(\d+)$/);
-    if (mixed) {
-      elements.push(
-        <MathFraction
-          key={`sub-frac-${key++}`}
-          whole={mixed[1]}
-          num={mixed[2]}
-          den={mixed[3]}
-        />
-      );
-    } else {
-      const frac = matched.match(/^(-?\d+)\s*\/\s*(\d+)$/);
-      if (frac) {
-        elements.push(
-          <MathFraction
-            key={`sub-frac-${key++}`}
-            whole={null}
-            num={frac[1]}
-            den={frac[2]}
-          />
-        );
-      } else {
-        elements.push(<span key={`sub-txt-${key++}`}>{matched}</span>);
-      }
-    }
-    lastIndex = fracRegex.lastIndex;
-  }
+  // Standalone mixed fractions (e.g. 4 7/8) not inside tags
+  str = str.replace(/(^|[^<>/a-zA-Z0-9_-])(\d+)\s+(\d+)\s*\/\s*(\d+)(?=[^<>/a-zA-Z0-9_-]|$)/g, (_, prefix, w, n, d) => {
+    return `${prefix}<span class="tex2jax_ignore" style="display:inline-flex;align-items:center;vertical-align:middle;margin:0 2px;line-height:1;font-family:inherit;font-size:inherit;"><span style="margin-right:4px;font-weight:bold;font-family:inherit;">${w}</span><span style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;text-align:center;font-family:inherit;"><span style="border-bottom:1.5px solid currentColor;padding:0 3px 1px 3px;font-size:0.85em;line-height:1.1;font-family:inherit;font-weight:bold;">${n}</span><span style="padding:1px 3px 0 3px;font-size:0.85em;line-height:1.1;font-family:inherit;font-weight:bold;">${d}</span></span></span>`;
+  });
 
-  if (lastIndex < clean.length) {
-    elements.push(
-      <span key={`sub-txt-${key++}`}>{clean.substring(lastIndex)}</span>
-    );
-  }
+  // Standalone simple fractions (e.g. 1/6) not inside tags
+  str = str.replace(/(^|[^<>/a-zA-Z0-9_-])(-?\d+)\s*\/\s*(\d+)(?=[^<>/a-zA-Z0-9_-]|$)/g, (_, prefix, n, d) => {
+    return `${prefix}<span class="tex2jax_ignore" style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;text-align:center;margin:0 2px;line-height:1;font-family:inherit;font-size:inherit;"><span style="border-bottom:1.5px solid currentColor;padding:0 3px 1px 3px;font-size:0.85em;line-height:1.1;font-family:inherit;font-weight:bold;">${n}</span><span style="padding:1px 3px 0 3px;font-size:0.85em;line-height:1.1;font-family:inherit;font-weight:bold;">${d}</span></span>`;
+  });
 
-  return elements;
+  // Remaining MTECHO tags replaced with backticks for MathJax
+  str = str.replace(/<MTECHO>/g, "`").replace(/<\/MTECHO>/g, "`");
+
+  return str;
 };
 
 const converIntoMathJax = (data) => {
   if (data === null || data === undefined) return null;
-  if (typeof data !== "string") return data;
-
-  const text = String(data).trim();
-  if (!text) return null;
-
-  // Check if string contains HTML tags other than <MTECHO> (e.g. <img> or <div>)
-  if (/<(img|div|span|p|b|i|br|table|tr|td)\b[^>]*>/i.test(text)) {
-    return <span dangerouslySetInnerHTML={{ __html: text }} />;
-  }
-
-  // Normalize MTECHO tags to backticks and fix entities
-  const normalized = text
-    .replace(/<MTECHO>/g, "`")
-    .replace(/<\/MTECHO>/g, "`")
-    .replace(/&sbquo;/g, ",")
-    .replace(/&nbsp;|&#160;|&#xA0;/gi, " ")
-    .trim();
-
-  // Pattern matches:
-  // 1. `...` backtick expressions
-  // 2. Standalone mixed fraction: whole num/den e.g. 4 7/8
-  // 3. Standalone fraction: num/den e.g. 1/6 or 15/2
-  const tokenRegex = /`([^`]+)`|(\b\d+\s+\d+\s*\/\s*\d+\b)|(\b-?\d+\s*\/\s*\d+\b)/g;
-
-  let lastIndex = 0;
-  const elements = [];
-  let match;
-  let keyIdx = 0;
-
-  while ((match = tokenRegex.exec(normalized)) !== null) {
-    if (match.index > lastIndex) {
-      elements.push(
-        <span key={`txt-${keyIdx++}`}>
-          {normalized.substring(lastIndex, match.index)}
-        </span>
-      );
-    }
-
-    const raw = (match[1] || match[2] || match[3] || "").trim();
-
-    // Check if raw contains fractions or math equation with fractions (e.g. "3/4 + 7/4")
-    if (/\d+\s*\/\s*\d+/.test(raw)) {
-      const subElements = parseMathExpression(raw);
-      elements.push(
-        <React.Fragment key={`math-expr-${keyIdx++}`}>
-          {subElements}
-        </React.Fragment>
-      );
-    } else {
-      // Other math expression inside backticks for MathJax
-      if (match[1]) {
-        elements.push(
-          <span
-            key={`math-${keyIdx++}`}
-            dangerouslySetInnerHTML={{ __html: "`" + raw + "`" }}
-          />
-        );
-      } else {
-        elements.push(
-          <span key={`txt-${keyIdx++}`}>
-            {raw}
-          </span>
-        );
-      }
-    }
-
-    lastIndex = tokenRegex.lastIndex;
-  }
-
-  if (lastIndex < normalized.length) {
-    elements.push(
-      <span key={`txt-${keyIdx++}`}>
-        {normalized.substring(lastIndex)}
-      </span>
-    );
-  }
-
-  if (elements.length === 0) {
-    return <span dangerouslySetInnerHTML={{ __html: normalized }} />;
-  }
-
-  return <>{elements}</>;
+  const s = cleanAndFormatMath(data);
+  return <span dangerouslySetInnerHTML={{ __html: s }} />;
 };
 
 export default function DND({ dragNDropQues, currentIndex, qNumber, siteUrls, dropedData, setDropedData, dragDrop }) {
@@ -700,7 +548,9 @@ export default function DND({ dragNDropQues, currentIndex, qNumber, siteUrls, dr
       <div className='col'>
         <div style={{ fontWeight: "bold", color: `${SWATheam.SwaBlue}` }}>{converIntoMathJax(qDataAccordingToSubActType.question)}</div>
         <div className="container2">
-          <div className="rowMcq" style={{ flexWrap: "wrap", justifyContent: "center", width: "100%", backgroundColor: "#d2d2d2" }}>
+          <div className="rowMcq" style={{
+            flexWrap: "wrap", justifyContent: "center", width: "100%", backgroundColor: "#d2d2d2", maxHeight: "250px", overflow: "scroll"
+          }}>
             {Object.entries(questionData)
               .filter(([key, value]) => key.startsWith("targetText") && value)
               .map(([key, value], tarIdx) => {
